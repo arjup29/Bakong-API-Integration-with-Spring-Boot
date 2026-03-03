@@ -43,6 +43,7 @@ Read these documents before starting the integration. All PDFs are also availabl
 | KHQR Content Guideline v1.3 | Content and data field standards for KHQR | `integration/KHQR Content Guideline v.1.3.pdf` |
 | QR Payment Integration | End-to-end QR payment integration guide | `integration/QR Payment Integration.pdf` |
 | KHQR Card Guideline | Official UI/design guideline for KHQR card display | [Download PDF](https://bakong.nbc.gov.kh/en/download/KHQR/guideline/KHQR%20Card%20Guideline.pdf) |
+| Postman Collection | Ready-to-use API collection for testing all endpoints | `integration/Bakong-API-Integration.postman_collection.json` |
 | Bakong Open API Portal | Register and get your Bearer Token | [https://api-bakong.nbc.gov.kh/](https://api-bakong.nbc.gov.kh/) |
 
 ---
@@ -350,7 +351,7 @@ src/
 └── test/
 ```
 
-> 📁 The project also includes an `integration/` folder with all official NBC documentation PDFs, and a `KHQR - asset/` folder with official KHQR brand assets. You can download both directly from the project repository.
+> 📁 The project also includes an `integration/` folder with all official NBC documentation PDFs and the Postman collection, and a `KHQR - asset/` folder with official KHQR brand assets. You can download both directly from the project repository.
 
 ---
 

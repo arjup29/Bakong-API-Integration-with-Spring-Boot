@@ -29,13 +29,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
     // Bakong API
-    implementation 'kh.gov.nbc.bakong_khqr:sdk-java:1.0.0.11'
+    implementation 'kh.gov.nbc.bakong_khqr:sdk-java:1.0.0.16'
 
     // For QR code generation
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.google.zxing:javase:3.5.3'
 
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 

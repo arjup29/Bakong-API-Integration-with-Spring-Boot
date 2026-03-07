@@ -40,8 +40,6 @@ Read these documents before starting the integration. All PDFs are also availabl
 |---|---|---|
 | Bakong Open API Document | Core API reference for authentication and endpoints | [Download PDF](https://bakong.nbc.gov.kh/download/KHQR/integration/Bakong%20Open%20API%20Document.pdf) |
 | KHQR SDK Document | Guide for using the KHQR Java SDK | [Download PDF](https://bakong.nbc.gov.kh/download/KHQR%20SDK.pdf) |
-| KHQR Content Guideline v1.3 | Content and data field standards for KHQR | `integration/KHQR Content Guideline v.1.3.pdf` |
-| QR Payment Integration | End-to-end QR payment integration guide | `integration/QR Payment Integration.pdf` |
 | KHQR Card Guideline | Official UI/design guideline for KHQR card display | [Download PDF](https://bakong.nbc.gov.kh/en/download/KHQR/guideline/KHQR%20Card%20Guideline.pdf) |
 | Postman Collection | Ready-to-use API collection for testing all endpoints | `integration/Bakong-API-Integration.postman_collection.json` |
 | Bakong Open API Portal | Register and get your Bearer Token | [https://api-bakong.nbc.gov.kh/](https://api-bakong.nbc.gov.kh/) |
@@ -59,16 +57,27 @@ Clone or create a Spring Boot project and add the required dependencies listed b
 Add the following to your `build.gradle`:
 
 ```groovy
+implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
 // Bakong KHQR SDK
-implementation 'kh.gov.nbc.bakong_khqr:sdk-java:1.0.0.11'
+implementation 'kh.gov.nbc.bakong_khqr:sdk-java:1.0.0.16'
 
 // QR code image generation (ZXing)
 implementation 'com.google.zxing:core:3.5.3'
 implementation 'com.google.zxing:javase:3.5.3'
 
-// Dynamic JSON parsing
-implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+// JSON parsing
+implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+// Validation
+implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+// Lombok
+compileOnly 'org.projectlombok:lombok'
+annotationProcessor 'org.projectlombok:lombok'
 ```
+
+> 💡 This project uses **Spring `RestClient`** (available since Spring Boot 3.2) instead of `RestTemplate` for all HTTP calls to the Bakong Open API. No extra dependency is needed — it is included in `spring-boot-starter-webmvc`.
 
 ---
 
@@ -78,12 +87,9 @@ implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
 
 ```properties
 spring.application.name=bakong-api-integration
-# Bakong Configuration (loaded from environment or profile properties)
+
+# Bakong Configuration
 bakong.account-id=${BAKONG_ACCOUNT_ID}
-bakong.acquiring-bank=${ACQUIRINGBANK}
-bakong.merchant-name=${MERCHANTNAME}
-bakong.mobile-number=${MOBILENUMBERSTORELABEL}
-bakong.store-label=${STORELABEL}
 bakong.base-url=${BAKONG_BASE_URL}
 bakong.email=${EMAIL}
 ```
@@ -92,17 +98,13 @@ bakong.email=${EMAIL}
 
 ```properties
 BAKONG_ACCOUNT_ID=your_bakong_id@bank
-ACQUIRINGBANK=your_acquiring_bank_code
-MERCHANTNAME=Your-Merchant-Name
-MOBILENUMBERSTORELABEL=YourLabel
-STORELABEL=YourStoreLabel
 BAKONG_BASE_URL=https://api-bakong.nbc.gov.kh
 EMAIL=your_registered_email@example.com
 ```
 
 > ⚠️ **Security Warning:** Never commit real credentials to version control. Use environment variables or a secrets manager in production.
 
-> 💡 **No need to manage tokens manually.** The `BakongTokenService` automatically fetches and caches the Bearer Token using your registered email. It decodes the JWT expiry and renews the token automatically before it expires.
+> 💡 **Simplified config.** Only 3 properties are needed: your Bakong account ID, the API base URL, and your registered email. The `BakongTokenService` handles token fetching and renewal automatically.
 
 ---
 
@@ -125,6 +127,8 @@ Body: { "email": "your_registered_email@example.com" }
 ```
 
 > 🔒 The token is stored in memory only (not on disk). It is renewed per application instance and resets on restart.
+
+> 🔄 This project uses **Spring `RestClient`** (introduced in Spring Boot 3.2) instead of the older `RestTemplate` for all HTTP calls to the Bakong Open API.
 
 ---
 
@@ -159,19 +163,40 @@ Content-Type: application/json
 }
 ```
 
+All fields except `amount` are optional — default values will be applied automatically if not provided. See the full request fields below:
+
+| Field | Type | Default |
+|---|---|---|
+| `currency` | `KHQRCurrency` | `KHR` |
+| `amount` | `Double` | _(required)_ |
+| `merchantName` | `String` | `DEFAULT MERCHANT` |
+| `merchantCity` | `String` | `PHNOM PENH` |
+| `merchantId` | `String` | `DEFAULT MERCHANT ID` |
+| `acquiringBank` | `String` | `DEFAULT BANK` |
+| `upiAccountInformation` | `String` | `null` |
+| `expirationTimestamp` | `Integer` | `15` |
+| `billNumber` | `String` | `BILL123456` |
+| `storeLabel` | `String` | `STORE` |
+| `terminalLabel` | `String` | `TERMINAL1` |
+| `mobileNumber` | `String` | `012345678` |
+| `purposeOfTransaction` | `String` | `Payment` |
+| `merchantAlternateLanguagePreference` | `String` | `km` |
+| `merchantNameAlternateLanguage` | `String` | `អ្នកលក់` |
+| `merchantCityAlternateLanguage` | `String` | `ភ្នំពេញ` |
+
 **Response:**
 
 ```json
 {
-    "KHQRStatus": {
-        "code": 0,
-        "errorCode": null,
-        "message": null
-    },
-    "data": {
-        "md5": "2e8787edaddc31ffe9c572923db06d33",
-        "qr": "0002010102121511KH12345678930360014bora_tong@aclb0106..."
-    }
+  "KHQRStatus": {
+    "code": 0,
+    "errorCode": null,
+    "message": null
+  },
+  "data": {
+    "md5": "2e8787edaddc31ffe9c572923db06d33",
+    "qr": "0002010102121511KH12345678930360014bora_tong@aclb0106..."
+  }
 }
 ```
 
@@ -209,10 +234,10 @@ The response is mapped to a `BakongResponse` record:
 
 ```java
 public record BakongResponse(
-    int responseCode,
-    String responseMessage,
-    Integer errorCode,
-    Object data
+        int responseCode,
+        String responseMessage,
+        Integer errorCode,
+        Object data
 )
 ```
 
@@ -234,19 +259,19 @@ Content-Type: application/json
 
 ```json
 {
-    "responseCode": 0,
-    "responseMessage": "Success",
-    "data": {
-        "hash": "bf917e9534cac3595ee5dc5a9e7d3b120b6143ff3b368c244189cf22ed9af877",
-        "fromAccountId": "customer@bank",
-        "toAccountId": "bora_tong@aclb",
-        "currency": "USD",
-        "amount": 0.1,
-        "description": null,
-        "createdDateMs": 1772125349000,
-        "acknowledgedDateMs": 1772125351000,
-        "externalRef": "100FT36931627892"
-    }
+  "responseCode": 0,
+  "responseMessage": "Success",
+  "data": {
+    "hash": "bf917e9534cac3595ee5dc5a9e7d3b120b6143ff3b368c244189cf22ed9af877",
+    "fromAccountId": "customer@bank",
+    "toAccountId": "bora_tong@aclb",
+    "currency": "USD",
+    "amount": 0.1,
+    "description": null,
+    "createdDateMs": 1772125349000,
+    "acknowledgedDateMs": 1772125351000,
+    "externalRef": "100FT36931627892"
+  }
 }
 ```
 
@@ -254,10 +279,10 @@ Content-Type: application/json
 
 ```json
 {
-    "responseCode": 1,
-    "responseMessage": "Transaction could not be found. Please check and try again.",
-    "errorCode": 1,
-    "data": null
+  "responseCode": 1,
+  "responseMessage": "Transaction could not be found. Please check and try again.",
+  "errorCode": 1,
+  "data": null
 }
 ```
 
@@ -328,8 +353,7 @@ src/
 │   ├── java/
 │   │   └── com.tongbora.bakongapiintergration/
 │   │       ├── config/
-│   │       │   ├── JacksonConfig.java           # Jackson ObjectMapper
-│   │       │   └── RestTemplateConfig.java      # RestTemplate bean
+│   │       │   └── JacksonConfig.java           # Jackson ObjectMapper
 │   │       ├── controller/
 │   │       │   └── BakongController.java        # REST API endpoints
 │   │       ├── dto/
@@ -341,7 +365,7 @@ src/
 │   │       │   ├── BakongTokenService.java      # Token service interface
 │   │       │   └── impl/
 │   │       │       ├── BakongServiceImpl.java   # Business logic
-│   │       │       └── BakongTokenServiceImpl.java # Token auto-renewal
+│   │       │       └── BakongTokenServiceImpl.java # Token auto-renewal (uses RestClient)
 │   │       └── BakongApiIntergrationApplication.java
 │   └── resources/
 │       ├── static/
@@ -351,7 +375,7 @@ src/
 └── test/
 ```
 
-> 📁 The project also includes an `integration/` folder with all official NBC documentation PDFs and the Postman collection, and a `KHQR - asset/` folder with official KHQR brand assets. You can download both directly from the project repository.
+> 📁 The project also includes an `integration/` folder containing the Bakong Open API Document, KHQR SDK Document, and the Postman collection. A `KHQR - asset/` folder with official KHQR brand assets is also included. You can download both directly from the project repository.
 
 ---
 

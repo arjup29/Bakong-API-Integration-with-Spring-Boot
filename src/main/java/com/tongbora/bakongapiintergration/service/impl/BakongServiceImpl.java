@@ -13,7 +13,6 @@ import com.tongbora.bakongapiintergration.dto.CheckTransactionRequest;
 import com.tongbora.bakongapiintergration.service.BakongService;
 import com.tongbora.bakongapiintergration.service.BakongTokenService;
 import kh.gov.nbc.bakong_khqr.BakongKHQR;
-import kh.gov.nbc.bakong_khqr.model.KHQRCurrency;
 import kh.gov.nbc.bakong_khqr.model.KHQRData;
 import kh.gov.nbc.bakong_khqr.model.KHQRResponse;
 import kh.gov.nbc.bakong_khqr.model.MerchantInfo;
@@ -22,12 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -35,44 +33,44 @@ import java.util.Map;
 @Slf4j
 public class BakongServiceImpl implements BakongService {
 
-    private final RestTemplate restTemplate;
+    @Value("${bakong.account-id}")
+    private String bakongAccountId;
+    @Value("${bakong.base-url}")
+    private String baseUrl;
+
+    private final RestClient restClient = RestClient.create();
     private final ObjectMapper mapper;
     private final BakongTokenService bakongTokenService;
 
-    @Value("${bakong.account-id}")
-    private String bakongAccountId;
-    @Value("${bakong.acquiring-bank}")
-    private String acquiringBank;
-    @Value("${bakong.merchant-name}")
-    private String merchantName;
-    @Value("${bakong.mobile-number}")
-    private String mobileNumber;
-    @Value("${bakong.store-label}")
-    private String storeLabel;
-    @Value("${bakong.base-url}")
-    private String baseUrl;
-//    @Value("${bakong.bearer-token}")
-//    private String bearerToken;
 
     @Override
-    public KHQRResponse<KHQRData> generateQR(BakongRequest request) {
+    public KHQRResponse<KHQRData> generateQR(BakongRequest bakongRequest) {
 
-        // You Can Customize MerchantInfo Based on Your Requirement
         MerchantInfo merchantInfo = new MerchantInfo();
+
+        // Set expiration timestamp to current time + provided expiration or default to 15 minutes
+        // Bakong API expects expiration timestamp in milliseconds, so we convert minutes to milliseconds
+        // You just need to provide expiration in minutes, and we will handle the conversion and defaulting logic here
+        merchantInfo.setExpirationTimestamp(
+                System.currentTimeMillis() + bakongRequest.expirationTimestamp() * 60 * 1000
+        );
+
         merchantInfo.setBakongAccountId(bakongAccountId);
-        merchantInfo.setMerchantId("123456");
-        merchantInfo.setAcquiringBank(acquiringBank);
-        merchantInfo.setCurrency(KHQRCurrency.USD);
-        merchantInfo.setAmount(request.amount());
-        merchantInfo.setMerchantName(merchantName);
-        merchantInfo.setMerchantCity("PHNOM PENH");
-        merchantInfo.setBillNumber("#12345");
-        merchantInfo.setMobileNumber(mobileNumber);
-        merchantInfo.setStoreLabel(storeLabel);
-        merchantInfo.setUpiAccountInformation("KH123456789");
-        merchantInfo.setMerchantAlternateLanguagePreference("km");
-        merchantInfo.setMerchantNameAlternateLanguage("តុងបូរា");
-        merchantInfo.setMerchantCityAlternateLanguage("ភ្នំពញ");
+        merchantInfo.setMerchantId(bakongRequest.merchantId());
+        merchantInfo.setAcquiringBank(bakongRequest.acquiringBank());
+        merchantInfo.setCurrency(bakongRequest.currency());
+        merchantInfo.setAmount(bakongRequest.amount());
+        merchantInfo.setMerchantName(bakongRequest.merchantName());
+        merchantInfo.setMerchantCity(bakongRequest.merchantCity());
+        merchantInfo.setBillNumber(bakongRequest.billNumber());
+        merchantInfo.setMobileNumber(bakongRequest.mobileNumber());
+        merchantInfo.setStoreLabel(bakongRequest.storeLabel());
+        merchantInfo.setUpiAccountInformation(bakongRequest.upiAccountInformation());
+        merchantInfo.setMerchantAlternateLanguagePreference(bakongRequest.merchantAlternateLanguagePreference());
+        merchantInfo.setMerchantNameAlternateLanguage(bakongRequest.merchantNameAlternateLanguage());
+        merchantInfo.setMerchantCityAlternateLanguage(bakongRequest.merchantCityAlternateLanguage());
+        merchantInfo.setPurposeOfTransaction(bakongRequest.purposeOfTransaction());
+        merchantInfo.setTerminalLabel(bakongRequest.terminalLabel());
         return BakongKHQR.generateMerchant(merchantInfo);
     }
 
@@ -91,6 +89,7 @@ public class BakongServiceImpl implements BakongService {
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.UTF_8.name());
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+            hints.put(EncodeHintType.MARGIN, 1);
 
             BitMatrix bitMatrix = qrCodeWriter.encode(qrCodeText, BarcodeFormat.QR_CODE, 300, 300, hints);
 
@@ -112,27 +111,21 @@ public class BakongServiceImpl implements BakongService {
     public BakongResponse checkTransactionByMD5(CheckTransactionRequest request) {
         String bearerToken = bakongTokenService.getToken();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        headers.setBearerAuth(bearerToken);
-
-        Map<String, String> requestBody = Map.of("md5", request.md5());
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
-
         String url = baseUrl.replaceAll("/+$", "") + "/v1/check_transaction_by_md5";
 
-        ResponseEntity<String> upstream = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                String.class
-        );
-        log.info("Data response from Bakong API: {}", upstream);
+        String responseBody = restClient.post()
+                .uri(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
+                .body(Map.of("md5", request.md5()))
+                .retrieve()
+                .body(String.class);
+
+        log.info("Data response from Bakong API: {}", responseBody);
 
         try {
-            // Deserialize data into BakongResponse
-            return mapper.readValue(upstream.getBody(), BakongResponse.class);
+            return mapper.readValue(responseBody, BakongResponse.class);
         } catch (Exception e) {
             throw new RuntimeException("Invalid upstream response", e);
         }

